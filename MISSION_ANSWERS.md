@@ -107,7 +107,7 @@ Theo CHECKPOINTS.md, mình deploy agent của Part 6 (`06-lab-complete/`) thay v
 
 - **Platform:** Railway
 - **Public URL:** https://agent-production-cfcee077.up.railway.app
-- **Screenshots:** `screenshots/railway-curl.png`, `screenshots/railway-dashboard.png`; chi tiết lệnh test xem `DEPLOYMENT.md`
+- **Screenshots:** `screenshots/dashboard.png`, `screenshots/running.png`, `screenshots/test.png`; chi tiết lệnh test xem `DEPLOYMENT.md`
 
 ### Exercise 3.1/3.2 — So sánh `railway.toml` với `render.yaml`
 
@@ -277,3 +277,85 @@ Kết quả đầy đủ (4 mức concurrency, 3 mức `MOCK_SLOW_RATE`) ở `BE
 - v1: 4.3% (1/23), gate FAIL. v2: 91.3% (21/23), gate PASS, cải thiện 20 câu, 0 regression.
 - v2 sai 2 câu (`security-02`, `scaling-03`); sau khi thêm 2 tài liệu vào `KNOWLEDGE_BASE`: **100% (23/23)**, 2 câu cải thiện, 0 regression, `Quality gate (accuracy ≥ 100%, không regression): PASS` (`reports/eval_v2_fixed.json`).
 - **Job CI** (`.github/workflows/eval.yml`): chạy mỗi pull request, bật agent v2 với `MOCK_ERROR_RATE=0`, rồi `python eval/run_eval.py --min-accuracy 0.85`. `run_eval.py` trả exit code 1 khi accuracy dưới ngưỡng hoặc có regression, nên bước này fail, job fail, và nếu bật branch protection yêu cầu check `quality-gate` pass thì PR không thể merge.
+
+# AI LOG
+
+Trong quá trình thực hiện bài lab, tôi có sử dụng Claude Code (trợ lý AI tích hợp trong VS Code) như một công cụ hỗ trợ phát triển. Tuy nhiên, tôi là người chủ động thực hiện các công việc chính, bao gồm nghiên cứu yêu cầu, phân tích mã nguồn, lựa chọn phương án triển khai, chạy thử nghiệm, kiểm tra kết quả và hoàn thiện báo cáo. AI chủ yếu được sử dụng để tham khảo, giải thích vấn đề và hỗ trợ xử lý những phần kỹ thuật cần thiết.
+
+## 1. Các công việc tôi trực tiếp thực hiện
+
+| Phần | Công việc tôi thực hiện |
+|---|---|
+| Part 1 | Đọc và phân tích mã nguồn, xác định các anti-pattern, đối chiếu sự khác biệt giữa môi trường development và production. |
+| Part 2, 4, 5 | Nghiên cứu cấu trúc Dockerfile, Docker Compose, JWT, Rate Limiter, Cost Guard, Health Check và Stateless. Tự đối chiếu với code thực tế để hoàn thiện câu trả lời. |
+| Part 6 | Phân tích các TODO, xác định những thành phần còn thiếu và triển khai các chức năng để đáp ứng yêu cầu production-ready. Bao gồm config, authentication, rate limiter, cost guard, Redis, main application và các file cấu hình triển khai. |
+| Part 7 | Kiểm tra stack observability, phân tích nguyên nhân container bị crash, bổ sung metric, cập nhật Knowledge Base và xây dựng quy trình CI. |
+| Báo cáo | Tổng hợp kết quả thực nghiệm, đối chiếu dữ liệu, phân tích kết quả và hoàn thiện các tài liệu MISSION_ANSWERS.md, BENCHMARK_REPORT.md, DEPLOYMENT.md. |
+
+## 2. Vai trò của AI trong quá trình thực hiện
+
+Tôi sử dụng Claude Code như một công cụ hỗ trợ trong các công việc sau:
+
+- Hỗ trợ giải thích các thành phần kỹ thuật như JWT, Redis, Rate Limiter, Docker và Observability.
+- Gợi ý cách phát hiện anti-pattern và các vấn đề có thể phát sinh khi triển khai production.
+- Đề xuất hướng xử lý đối với các TODO và lỗi phát sinh trong quá trình triển khai.
+- Hỗ trợ viết hoặc điều chỉnh một số đoạn code, file cấu hình và tài liệu.
+- Hỗ trợ phân tích output từ các lệnh kiểm thử để tôi có thêm cơ sở đối chiếu.
+
+Các đề xuất từ AI đều được tôi xem xét, điều chỉnh và kiểm tra lại trong môi trường thực tế trước khi sử dụng. Tôi không sử dụng kết quả AI đưa ra như một kết quả kiểm chứng độc lập.
+
+## 3. Quá trình triển khai và kiểm thử thực tế
+
+Toàn bộ quá trình thiết lập môi trường và thực nghiệm được tôi trực tiếp thực hiện trên máy cá nhân:
+
+- Cài đặt và cấu hình Python, Docker Desktop, WSL2 Ubuntu, Python 3.12 thông qua uv và Railway CLI.
+- Tự thực hiện các lệnh build image, chạy container, Docker Compose, curl, load test, evaluation và Locust headless.
+- Tự thiết lập tài khoản Railway, tạo project, cấu hình Redis và thiết lập AGENT_API_KEY. Các thông tin nhạy cảm không được đưa vào repository.
+- Trực tiếp triển khai ứng dụng lên Railway bằng lệnh railway up.
+- Tự thay đổi file .env để thực hiện các thí nghiệm A–E.
+- Thực hiện benchmark với quy mô 1 và 3 instance.
+- Chụp ảnh minh chứng, lưu output và tổng hợp dữ liệu vào các thư mục screenshots/, reports/ và benchmark-results/.
+
+Các số liệu trong báo cáo như kích thước image, RPS, p50/p95/p99, accuracy, cost và thời gian alert firing đều được lấy từ kết quả chạy thực tế. Tôi trực tiếp tổng hợp và đối chiếu dữ liệu từ các file JSON/CSV trước khi đưa vào báo cáo.
+
+## 4. Những lỗi gặp phải và cách tôi xử lý
+
+| Vấn đề | Cách tôi xử lý |
+|---|---|
+| Docker Hub trả lỗi 429 khi pull image | Đăng nhập Docker Hub bằng docker login và thực hiện build lại. |
+| Docker Compose báo thiếu .env.local | Kiểm tra cấu hình và tạo file .env.local rỗng để đáp ứng yêu cầu của compose. |
+| pydantic-core không build được trên Python 3.14/3.15 | Kiểm tra tính tương thích và chuyển sang Python 3.12 để chạy script kiểm thử. |
+| Graceful shutdown không đạt trên Windows | Xác định vấn đề liên quan đến cách xử lý SIGTERM trên Windows và chuyển sang WSL2 Ubuntu để kiểm tra lại. |
+| Container agent của stack observability bị crash với ModuleNotFoundError: uvicorn | Kiểm tra log container, xác định vấn đề liên quan đến PYTHONPATH và điều chỉnh Dockerfile. |
+| Alert chưa firing sau khi thay đổi .env | Kiểm tra trạng thái Locust, xác nhận hệ thống vẫn đang nhận tải và chờ đủ khoảng thời gian cấu hình trong điều kiện alert. |
+
+Trong các tình huống trên, tôi chủ động kiểm tra log, xác định nguyên nhân và thử nghiệm phương án xử lý. AI được sử dụng để hỗ trợ giải thích lỗi và tham khảo hướng khắc phục khi cần thiết.
+
+## 5. Kết quả kiểm chứng
+
+Sau khi hoàn thành triển khai, tôi trực tiếp thực hiện lại các bước kiểm tra để xác nhận kết quả:
+
+- Chạy lại `python check_production_ready.py` với Docker trong WSL2 Ubuntu và đạt kết quả PASS 12/12.
+- Gọi trực tiếp URL Railway bằng curl:
+  - `/health` trả về HTTP 200.
+  - `/ready` trả về HTTP 200.
+  - `/ask` không có API key trả về HTTP 401.
+  - `/ask` có API key hợp lệ trả về HTTP 200.
+- Chạy lại evaluation sau khi điều chỉnh KNOWLEDGE_BASE, đạt 100% (23/23) và không có regression theo file `reports/eval_v2_fixed.json`.
+- Đối chiếu các số liệu trong BENCHMARK_REPORT.md với dữ liệu gốc từ JSON và CSV.
+- Kiểm tra lại các ảnh minh chứng và tài liệu triển khai trước khi hoàn thiện bài nộp.
+
+## 6. Hạn chế và những điểm cần lưu ý
+
+Trong quá trình thực hiện, tôi ghi nhận một số hạn chế:
+
+- Không lưu lại chính xác thời điểm thay đổi cấu hình của thí nghiệm A và B, do đó bảng 4.2 chỉ có thông tin Active Since, chưa thể xác định chính xác khoảng thời gian từ lúc thay đổi cấu hình đến khi alert firing.
+- Ảnh `screenshots/test.png` được chụp trong phiên chưa thiết lập biến `$KEY`, nên lệnh thứ tư trả về HTTP 401. Tuy nhiên, tôi đã kiểm tra lại trong phiên có API key và xác nhận endpoint trả về HTTP 200. Thông tin này được ghi chú trong DEPLOYMENT.md.
+
+## 7. Đánh giá mức độ sử dụng AI
+
+AI đóng vai trò là công cụ hỗ trợ trong quá trình thực hiện bài lab, tương tự một trợ lý lập trình giúp giải thích kiến thức, gợi ý phương án và hỗ trợ xử lý một số công việc kỹ thuật.
+
+Tôi là người trực tiếp nghiên cứu yêu cầu, triển khai môi trường, thực hiện các thí nghiệm, kiểm tra lỗi, chạy benchmark, xác minh kết quả và chịu trách nhiệm về nội dung báo cáo cuối cùng.
+
+Việc sử dụng AI giúp tiết kiệm thời gian tra cứu và xử lý vấn đề, nhưng các kết quả được đưa vào bài nộp đều được đối chiếu với quá trình thực nghiệm thực tế của tôi.

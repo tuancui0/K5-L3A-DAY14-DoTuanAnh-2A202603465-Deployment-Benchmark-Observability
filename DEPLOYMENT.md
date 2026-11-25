@@ -45,5 +45,6 @@ curl -X POST https://agent-production-cfcee077.up.railway.app/ask \
 - `RATE_LIMIT_PER_MINUTE`, `DAILY_BUDGET_USD` — dùng giá trị mặc định (10 và 1.0)
 
 ## Screenshots
-- `screenshots/railway-curl.png` — kết quả 4 lệnh curl (200, 200, 401, 200)
-- `screenshots/railway-dashboard.png` — service agent đang chạy trên Railway
+- [Deployment dashboard](screenshots/dashboard.png) — dashboard Railway của project
+- [Service running](screenshots/running.png) — service agent đang chạy (Active) và log khởi động
+- [Test results](screenshots/test.png) — `/health` 200, `/ready` 200, `/ask` không có key 401. Ảnh này chụp ở phiên terminal chưa đặt `$KEY` nên lệnh thứ 4 (có key) hiện 401; lệnh đó đã trả 200 khi chạy ở phiên có `$KEY` đúng.
