@@ -1,0 +1,20 @@
+name: quality-gate
+
+on: [pull_request]
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run agent + eval
+        working-directory: 06-lab-complete/benchmark-observability/develop
+        run: |
+          pip install -r requirements.txt
+          AGENT_VERSION=v2 MOCK_ERROR_RATE=0 PORT=8000 python app.py &
+          sleep 3
+          # run_eval.py trả exit code 1 khi accuracy < ngưỡng hoặc có regression → job fail → PR không merge được
+          python eval/run_eval.py --url http://localhost:8000 --min-accuracy 0.85
